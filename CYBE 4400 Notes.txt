@@ -1,0 +1,9 @@
+CYBE 4400 Notes
+------------------------------------------------------------------------------------------------
+sample.c file in linux-2.6.23/security is a completed file
+look over it and implement your own cw-lite code into sample.c file
+after that, go to bed
+
+tomorrow:
+figure out how the fuck this makefile and make bullshit works
+once that is done need to test the code and see if it is working as expected.

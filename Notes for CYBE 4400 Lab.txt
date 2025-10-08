@@ -1,0 +1,30 @@
+Notes for CYBE 4400 Lab
+-----------------------------------------------------------------------------------------------
+YOUR CODE: Create debugfs file "cwlite" under "cwl" directory
+
+struct dentry *debugfs_create_file(
+const char *name, 
+umode_t mode,                                 
+struct dentry *parent, 
+void *data,
+const struct file_operations *fops);
+
+Here,
+name = name of file to create
+mode = access permission file should have (0777, 0666, etc - in octal notation)	
+parent = directory which should hold the file
+data = stored in i_private field of resulting inode structure
+fops = set of file operations which implement the file's behavior
+
+
+In the case of the project, we want to create debugfs file for cw-lite.
+Create variable dfs_cwlite to represent the debugfs file "cwlite" under "cwl" directory
+
+d_cwlite = debugfs_create_file(
+name = "cwlite"
+mode = 0666 - allows owners, groups, and others to read and write to the files
+parent = cwl_debugfs_root (this variable holds the directory "cwl")
+data = NULL in this scenario
+file_operations = cwlite_ops (a [file_operations cw_lite] was created a few functions above)
+
+----------------------------------------------------------------------------------------------

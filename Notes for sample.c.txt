@@ -1,0 +1,10 @@
+Notes for sample.c
+-----------------------------------------------------------------------------------------------
+#define SAMPLE_IGNORE 0
+#define SAMPLE_UNTRUSTED 1
+#define SAMPLE_TRUSTED 2
+#define SAMPLE_TARGET_SID 7
+- These define the security labels that can be assigned to processes and files
+
+security_context_to_sid() - converts string labels ("trusted", "untrusted", "target") to numeric ids
+get_task_sid(
