@@ -145,17 +145,23 @@ static int has_perm(u32 ssid_full, u32 osid, u32 ops)
 
 	/* YOUR CODE: CW-Lite Authorization Rules */
 
+	//Rules Implementation
+	// if ssid or osid are SAMPLE_IGNORE, allow access
+	// if ssid is SAMPLE_TRUSTED, allow access to all objects if CW-Lite is on
+	// if ssid is SAMPLE_TRUSTED and CW-Lite is off, allow access only to SAMPLE_TRUSTED objects
+	// if ssid is SAMPLE_UNTRUSTED, allow access only to SAMPLE_UNTRUSTED objects
+
+	/* If subject has no security label, allow access */
+	if (ssid == SAMPLE_IGNORE) {
+		return 0; // ignore - no restrictions
+	}
+	
+	/* If object has no security label, allow access */
+	if (osid == SAMPLE_IGNORE) {
+		return 0; // no object restrictions
+	}
+
     if (ssid && osid) {
-		/* If subject has no security label, allow access */
-		if (ssid == SAMPLE_IGNORE) {
-			return 0; // ignore - no restrictions
-		}
-		
-		/* If object has no security label, allow access */
-		if (osid == SAMPLE_IGNORE) {
-			return 0; // no object restrictions
-		}
-		
 		/* CW-Lite Rules Implementation */
 		if (ssid == SAMPLE_TRUSTED) {
 			/* Trusted processes can access trusted objects */
@@ -164,12 +170,9 @@ static int has_perm(u32 ssid_full, u32 osid, u32 ops)
 			}
 			/* Trusted processes accessing untrusted objects */
 			if (osid == SAMPLE_UNTRUSTED) {
-				/* With CW-Lite on, allow read operations but restrict write and exec operations */
+				/* With CW-Lite on, allow all operations (write, read, exec) */
 				if (cwl & 0x10000000) {
-					if (ops & (MAY_WRITE | MAY_APPEND | MAY_EXEC)) {
-						return -4; // deny write and exec operations even with CW-Lite
-					}
-					return 0; // allow only read operations with CW-Lite
+					return 0; // allow all operations with CW-Lite
 				} else {
 					return -3; // deny all access without CW-Lite
 				}
@@ -191,9 +194,7 @@ static int has_perm(u32 ssid_full, u32 osid, u32 ops)
 		return -5;
 	}
 	
-	/* Other processes - allow */
-	return 0;
-
+	/* This should not be reachable given SAMPLE_IGNORE = 0 */
 	return -9;  /* should not get here */
 }
 
@@ -336,7 +337,11 @@ static int inode_has_perm(struct task_struct *task,
 	}
 
 /* YOUR CODE: do authorize */
+//rtn was already declared in the code above and is the return variable below
+//has_perm(ssid, osid, ops) is the function that runs our cw-lite rules
+//by running has_perm the authorization rules are applied
 
+	rtn = has_perm(ssid, osid, ops);
 
 /* Then, use this code to print relevant denials: for our processes or on our objects */
 	if (( ssid && osid ) && rtn ) {
@@ -399,8 +404,12 @@ static int sample_inode_permission(struct inode *inode, int mask,
 static int sample_bprm_set_security(struct linux_binprm *bprm)
 {
 	struct inode *inode = bprm->file->f_dentry->d_inode;
+	u32 osid; //declare a u32 variable to hold the osid
 
 	/* YOUR CODE: Determine the label for the new process */
+	
+	// Get the security label of the executable file
+	osid = get_inode_sid(inode); //use the get_inode_sid function to get the osid of the inode
 
 /* if the inode's sid indicates trusted or untrusted, then set 
    task->security */
@@ -479,10 +488,9 @@ int sample_inode_setxattr (struct dentry *dentry, char *name, void *value,
 	}
 
 	/* YOUR CODE: Gather inputs for inode_has_perm */
-	
-	inode = dentry->d_inode;
-	ssid = get_task_sid(current);
-	osid = get_inode_sid(inode);
+	inode = dentry->d_inode; // retrieves the inode associated with the given dentry
+	ssid = get_task_sid(current); // retrieves the SID of the current task
+	osid = get_inode_sid(inode); // retrieves the SID of the inode
 
 
 /* record attribute setting request before authorization */
@@ -542,11 +550,16 @@ int sample_file_permission (struct file *file, int mask)
 		return 0;
 	}
 
-	/* YOUR CODE: Collect arguments for call to inode_has_perm */
+	/* YOUR CODE: Collect arguments for call to inode_has_perm */\
 	
-	inode = file->f_path.dentry->d_inode;
-	dentry = file->f_path.dentry;
-	mnt = file->f_path.mnt;
+	// dentry represents a specific name in a directory, maps a filename to its inode
+	//f_path is a structure that holds the path information of the file
+	//file represents an open file in the kernel
+	//d_inode is the inode associated with the dentry
+
+	inode = file->f_path.dentry->d_inode; // retrieves the inode associated with the file's dentry 
+	dentry = file->f_path.dentry; // retrieves the dentry associated with the file's path
+	mnt = file->f_path.mnt; // retrieves the vfsmount associated with the file's path
 
 	if ( current->security ) {  // ssid
 #if 0
@@ -773,8 +786,36 @@ static size_t cwlite_read(struct file *filp, char __user *buffer,
 				size_t count, loff_t *ppos)
 {
 	/* YOUR CODE: for reading the CW-Lite value from the kernel */
+	
+	char tbuf[1];                         // Single character buffer for '0' or '1'
+	u32 ssid = get_task_sid(current);     // Get current process ssid
+	u32 cwl = 0xf0000000 & ssid;         // Extract CW-Lite flag (upper 4 bits)
 
-	return count;
+	// Determine CW-Lite status: any non-zero value means CW-Lite is ON
+	if (cwl == 0){
+		*tbuf = '0';                      // CW-Lite OFF
+	} else {
+		*tbuf = '1';                      // CW-Lite ON (bit 28 set)
+	}
+
+	// Handle EOF: if already read the single character, return 0
+	if (*ppos >= 1) {
+		return 0;
+	}
+	
+	// Limit read to remaining bytes (prevent reading beyond our 1-byte data)
+	if (*ppos + count > 1){
+		count = 1 - *ppos;
+	}
+
+	// Safely copy data from kernel space to user space
+	if (copy_to_user(buffer, tbuf + *ppos, count)) {
+		return -EFAULT;               // Return error if copy fails
+	}
+	
+	*ppos += count;                   // Update file position for next read
+
+	return count;                     // Return number of bytes actually read
 }
 
 
@@ -782,8 +823,24 @@ static ssize_t cwlite_write(struct file *filp, const char __user *buffer,
                                  size_t count, loff_t *ppos)
 {
         int new_value;
+        char tbuf[1];                     // Single character buffer to match read function
 
 	/* YOUR CODE: for collecting value to write from user space */
+	
+	// Validate input size - only accept single character
+	if (count != 1) {
+		return -EINVAL;               // Must be exactly 1 character
+	}
+	
+	// Safely copy single character from user space to kernel space
+	if (copy_from_user(tbuf, buffer, 1)) {
+		return -EFAULT;               // Copy failed (bad user address)
+	}
+	
+	// Convert character to integer (no null termination needed for single char)
+	new_value = tbuf[0] - '0';        // Convert '0' or '1' to integer 0 or 1
+	
+	*ppos += count;                   // Update file position
 	
         // get current
         // set flag on task
