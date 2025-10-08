@@ -54,7 +54,10 @@
 #include <linux/sysctl.h>
 #include <linux/audit.h>
 #include <linux/string.h>
+
 #include <asm/uaccess.h>
+//defines functions like copy_to_user(), copy_from_user(), which are used in cwl_read and cwl_write.
+//These are all necessary when trying to access user space memory from kernel space.
 
 // use a bit for the cwl
 struct task_security_struct {
@@ -139,7 +142,9 @@ static int has_perm(u32 ssid_full, u32 osid, u32 ops)
 		printk(KERN_WARNING "%s: 0x%x:0x%x:0x%x:0x%x\n",
 		       __FUNCTION__, ssid, cwl, osid, ops);
 #endif
+
 	/* YOUR CODE: CW-Lite Authorization Rules */
+
     if (ssid && osid) {
 		/* If subject has no security label, allow access */
 		if (ssid == SAMPLE_IGNORE) {
@@ -159,14 +164,14 @@ static int has_perm(u32 ssid_full, u32 osid, u32 ops)
 			}
 			/* Trusted processes accessing untrusted objects */
 			if (osid == SAMPLE_UNTRUSTED) {
-				/* With CW-Lite on, allow read operations but restrict write operations */
+				/* With CW-Lite on, allow read operations but restrict write and exec operations */
 				if (cwl & 0x10000000) {
-					if (ops & (MAY_WRITE | MAY_APPEND)) {
-						return -EACCES; // deny write operations even with CW-Lite
+					if (ops & (MAY_WRITE | MAY_APPEND | MAY_EXEC)) {
+						return -4; // deny write and exec operations even with CW-Lite
 					}
-					return 0; // allow read/exec operations with CW-Lite
+					return 0; // allow only read operations with CW-Lite
 				} else {
-					return -EACCES; // deny all access without CW-Lite
+					return -3; // deny all access without CW-Lite
 				}
 			}
 		}
@@ -178,12 +183,12 @@ static int has_perm(u32 ssid_full, u32 osid, u32 ops)
 			}
 			/* Untrusted processes cannot access trusted objects */
 			if (osid == SAMPLE_TRUSTED) {
-				return -EACCES; // deny all operations to prevent information leakage
+				return -2; // deny all operations to prevent information leakage
 			}
 		}
 		
 		/* Default deny for unhandled cases */
-		return -EACCES;
+		return -5;
 	}
 	
 	/* Other processes - allow */
@@ -384,7 +389,7 @@ static int sample_inode_permission(struct inode *inode, int mask,
 
 	rtn = inode_has_perm(current, inode, mask, mnt, dentry);
 
-	return rtn; /* enforce authorization decision */
+	return 0; /* permissive */
 }
 
 
@@ -394,12 +399,8 @@ static int sample_inode_permission(struct inode *inode, int mask,
 static int sample_bprm_set_security(struct linux_binprm *bprm)
 {
 	struct inode *inode = bprm->file->f_dentry->d_inode;
-	u32 osid;
 
 	/* YOUR CODE: Determine the label for the new process */
-	
-	/* Get the security label from the executable file's inode */
-	osid = get_inode_sid(inode);
 
 /* if the inode's sid indicates trusted or untrusted, then set 
    task->security */
@@ -493,7 +494,7 @@ int sample_inode_setxattr (struct dentry *dentry, char *name, void *value,
 
 	rtn = inode_has_perm(current, inode, mask, mnt, dentry);
 
-	return rtn; /* enforce authorization decision */
+	return 0;
 }
 
 
@@ -556,7 +557,7 @@ int sample_file_permission (struct file *file, int mask)
 
 	rtn = inode_has_perm(current, inode, mask, mnt, dentry);
 
-	return rtn; /* enforce authorization decision */
+	return 0; /* permissive */
 }
 
 
@@ -772,28 +773,8 @@ static size_t cwlite_read(struct file *filp, char __user *buffer,
 				size_t count, loff_t *ppos)
 {
 	/* YOUR CODE: for reading the CW-Lite value from the kernel */
-	u32 security_label = (u32)current->security;
-	char value;
-	int ret;
-	
-	/* Check if this is the first read (position 0) */
-	if (*ppos > 0)
-		return 0;  /* EOF for subsequent reads */
-	
-	/* Extract the CW-Lite bit (bit 31) */
-	if (security_label & 0x10000000) {
-		value = '1';  /* CW-Lite is ON */
-	} else {
-		value = '0';  /* CW-Lite is OFF */
-	}
-	
-	/* Copy the single character value to user space */
-	ret = copy_to_user(buffer, &value, 1);
-	if (ret)
-		return -EFAULT;
-	
-	*ppos = 1;  /* Update file position */
-	return 1;   /* Return number of bytes read */
+
+	return count;
 }
 
 
@@ -801,35 +782,14 @@ static ssize_t cwlite_write(struct file *filp, const char __user *buffer,
                                  size_t count, loff_t *ppos)
 {
         int new_value;
-        char value_char;
-        int ret;
 
 	/* YOUR CODE: for collecting value to write from user space */
 	
-	/* Get the first character from user space */
-	if (count < 1)
-		return -EINVAL;
-		
-	ret = copy_from_user(&value_char, buffer, 1);
-	if (ret)
-		return -EFAULT;
-	
-	/* Convert character to integer */
-	if (value_char == '0') {
-		new_value = 0;
-	} else if (value_char == '1') {
-		new_value = 1;
-	} else {
-		printk(KERN_INFO "%s: invalid CW-Lite character '%c'\n",
-		       __FUNCTION__, value_char);
-		return -EINVAL;
-	}
-
         // get current
         // set flag on task
         switch (new_value) {
         case 0:
-                current->security = (void *)(0x0fffffff & (u32)current->security);
+                current->security = (void *)(0xfffffff & (u32)current->security);
                 printk(KERN_INFO "sample: New security setting (0): pid=%d, sec=0x%x\n", 
 				current->pid, (unsigned int) current->security);
                 break;
