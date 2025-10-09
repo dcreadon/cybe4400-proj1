@@ -124,6 +124,35 @@ int main( int argc, char *argv[] )
 		close( fd );
 	}
 	
+	/* UNTRUSTED PROCESS TESTS - Label this executable as 'untrusted' before running these */
+	printf( "\n=== UNTRUSTED Process Tests (requires untrusted executable) ===\n" );
+	
+	/* Test: UNTRUSTED process + TRUSTED file should be DENIED */
+	printf( "Testing: UNTRUSTED process accessing TRUSTED file with CW-Lite OFF\n" );
+	cwlite_off( cwl_fd );
+	fd = open(argv[1], O_RDONLY);
+	
+	if ( fd < 0 ) {
+		printf( "CORRECT: Access denied to trusted file by untrusted process\n" );
+	}
+	else {
+		printf( "ERROR: Access allowed to trusted file by untrusted process (should be denied)\n" );
+		close( fd );
+	}
+	
+	/* Test: UNTRUSTED process + UNTRUSTED file should be ALLOWED */
+	printf( "Testing: UNTRUSTED process accessing UNTRUSTED file\n" );
+	cwlite_off( cwl_fd );
+	fd = open(argv[2], O_RDONLY);
+	
+	if ( fd < 0 ) {
+		printf( "ERROR: Access denied to untrusted file by untrusted process (should be allowed)\n" );
+	}
+	else {
+		printf( "CORRECT: Access allowed to untrusted file by untrusted process\n" );
+		close( fd );
+	}
+	
 	cwlite_close( cwl_fd );
 
 	return 0;
