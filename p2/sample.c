@@ -137,9 +137,9 @@ static int has_perm(u32 ssid_full, u32 osid, u32 ops)
 {
 	u32 cwl = 0xf0000000 & ssid_full;
 	u32 ssid = 0xfffffff & ssid_full;
-#if 0
+#if 1
 	if (ssid && osid) 
-		printk(KERN_WARNING "%s: 0x%x:0x%x:0x%x:0x%x\n",
+		printk(KERN_WARNING "%s: ssid=0x%x cwl=0x%x osid=0x%x ops=0x%x\n",
 		       __FUNCTION__, ssid, cwl, osid, ops);
 #endif
 
