@@ -98,7 +98,7 @@ extern struct security_operations *security_ops;
 
 static int security_context_to_sid(char *context, u32 *sid)
 {
-#if 0
+#if 1
 	printk(KERN_WARNING "%s: have context: %s\n",
 	       __FUNCTION__, context);
 #endif
@@ -137,7 +137,7 @@ static int has_perm(u32 ssid_full, u32 osid, u32 ops)
 {
 	u32 cwl = 0xf0000000 & ssid_full;
 	u32 ssid = 0xfffffff & ssid_full;
-#if 1
+#if 0
 	printk(KERN_WARNING "%s: ssid=0x%x cwl=0x%x osid=0x%x ops=0x%x\n",
 	       __FUNCTION__, ssid, cwl, osid, ops);
 #endif
@@ -396,7 +396,7 @@ static int sample_inode_permission(struct inode *inode, int mask,
 
 	rtn = inode_has_perm(current, inode, mask, mnt, dentry);
 
-	return 0; /* permissive */
+	return rtn; /* return the actual authorization result */
 }
 
 
@@ -579,7 +579,7 @@ int sample_file_permission (struct file *file, int mask)
 
 	rtn = inode_has_perm(current, inode, mask, mnt, dentry);
 
-	return 0; /* permissive */
+	return rtn; /* permissive */
 }
 
 
