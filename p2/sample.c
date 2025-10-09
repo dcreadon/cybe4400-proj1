@@ -788,25 +788,26 @@ static ssize_t cwlite_read(struct file *filp, char __user *buffer,
 {
 	/* YOUR CODE: for reading the CW-Lite value from the kernel */
 	
-	char tbuf[1];                         // Single character buffer for '0' or '1'
+	char tbuf[2];                         // Two character buffer for null-terminated string
 	u32 ssid = get_task_sid(current);     // Get current process ssid
 	u32 cwl = 0xf0000000 & ssid;         // Extract CW-Lite flag (upper 4 bits)
 
 	// Determine CW-Lite status: any non-zero value means CW-Lite is ON
 	if (cwl == 0){
-		*tbuf = '0';                      // CW-Lite OFF
+		tbuf[0] = '0';                    // CW-Lite OFF
 	} else {
-		*tbuf = '1';                      // CW-Lite ON (bit 28 set)
+		tbuf[0] = '1';                    // CW-Lite ON (bit 28 set)
 	}
+	tbuf[1] = '\0';                       // Null termination
 
-	// Handle EOF: if already read the single character, return 0
-	if (*ppos >= 1) {
+	// Handle EOF: if already read the 2 characters, return 0
+	if (*ppos >= 2) {
 		return 0;
 	}
 	
-	// Limit read to remaining bytes (prevent reading beyond our 1-byte data)
-	if (*ppos + count > 1){
-		count = 1 - *ppos;
+	// Limit read to remaining bytes (prevent reading beyond our 2-byte data)
+	if (*ppos + count > 2){
+		count = 2 - *ppos;
 	}
 
 	// Safely copy data from kernel space to user space
