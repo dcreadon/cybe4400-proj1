@@ -138,9 +138,8 @@ static int has_perm(u32 ssid_full, u32 osid, u32 ops)
 	u32 cwl = 0xf0000000 & ssid_full;
 	u32 ssid = 0xfffffff & ssid_full;
 #if 1
-	if (ssid && osid) 
-		printk(KERN_WARNING "%s: ssid=0x%x cwl=0x%x osid=0x%x ops=0x%x\n",
-		       __FUNCTION__, ssid, cwl, osid, ops);
+	printk(KERN_WARNING "%s: ssid=0x%x cwl=0x%x osid=0x%x ops=0x%x\n",
+	       __FUNCTION__, ssid, cwl, osid, ops);
 #endif
 
 	/* YOUR CODE: CW-Lite Authorization Rules */
@@ -407,6 +406,9 @@ static int sample_bprm_set_security(struct linux_binprm *bprm)
 	
 	// Get the security label of the executable file
 	osid = get_inode_sid(inode); //use the get_inode_sid function to get the osid of the inode
+	
+	printk(KERN_WARNING "%s: executable osid=0x%x for pid=%d\n",
+	       __FUNCTION__, osid, current->pid);
 
 /* if the inode's sid indicates trusted or untrusted, then set 
    task->security */
@@ -414,6 +416,9 @@ static int sample_bprm_set_security(struct linux_binprm *bprm)
 		current->security = (void *)osid;
 		printk(KERN_WARNING "%s: set task pid=%d of ssid 0x%x\n",
 		       __FUNCTION__, current->pid, osid);
+	} else {
+		printk(KERN_WARNING "%s: no label found for executable, pid=%d remains unlabeled\n",
+		       __FUNCTION__, current->pid);
 	}
 
 	return 0;
