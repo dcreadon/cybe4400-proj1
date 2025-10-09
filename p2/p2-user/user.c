@@ -85,6 +85,45 @@ int main( int argc, char *argv[] )
 		close( fd );
 	}
 	
+	/* Test write access: TRUSTED process + CW-Lite OFF + TRUSTED file should be ALLOWED */
+	printf( "Testing write access: TRUSTED process writing to TRUSTED file with CW-Lite OFF\n" );
+	cwlite_off( cwl_fd );
+	fd = open(argv[1], O_WRONLY);
+	
+	if ( fd < 0 ) {
+		printf( "ERROR: Write access denied to trusted file when CW-Lite is OFF (should be allowed)\n" );
+	}
+	else {
+		printf( "CORRECT: Write access allowed to trusted file when CW-Lite is OFF\n" );
+		close( fd );
+	}
+	
+	/* Test write access: TRUSTED process + CW-Lite ON + UNTRUSTED file should be ALLOWED */
+	printf( "Testing write access: TRUSTED process writing to UNTRUSTED file with CW-Lite ON\n" );
+	cwlite_on( cwl_fd );
+	fd = open(argv[2], O_WRONLY);
+	
+	if ( fd < 0 ) {
+		printf( "ERROR: Write access denied to untrusted file when CW-Lite is ON (should be allowed)\n" );
+	}
+	else {
+		printf( "CORRECT: Write access allowed to untrusted file when CW-Lite is ON\n" );
+		close( fd );
+	}
+	
+	/* Test append access: TRUSTED process + CW-Lite OFF + UNTRUSTED file should be DENIED */
+	printf( "Testing append access: TRUSTED process appending to UNTRUSTED file with CW-Lite OFF\n" );
+	cwlite_off( cwl_fd );
+	fd = open(argv[2], O_WRONLY | O_APPEND);
+	
+	if ( fd < 0 ) {
+		printf( "CORRECT: Append access denied to untrusted file when CW-Lite is OFF\n" );
+	}
+	else {
+		printf( "ERROR: Append access allowed to untrusted file when CW-Lite is OFF (should be denied)\n" );
+		close( fd );
+	}
+	
 	cwlite_close( cwl_fd );
 
 	return 0;
