@@ -226,6 +226,8 @@ static u32 inode_init_with_dentry(struct dentry *dentry, struct inode *inode)
 	rc = inode->i_op->getxattr(dentry, XATTR_NAME_SAMPLE,
 				   context, len);
 	len = rc;
+	
+	printk(KERN_WARNING "%s: getxattr returned %d bytes\n", __FUNCTION__, len);
 	if (rc == -ERANGE) {
 		/* Need a larger buffer.  Query for the right size. */
 		rc = inode->i_op->getxattr(dentry, XATTR_NAME_SAMPLE,
@@ -292,9 +294,13 @@ static u32 get_task_sid(struct task_struct *task)
 static u32 get_inode_sid(struct inode *inode)
 {
 	struct dentry *dentry;
+	u32 sid;
 
 	dentry = d_find_alias(inode); 
-	return inode_init_with_dentry(dentry, inode);
+	sid = inode_init_with_dentry(dentry, inode);
+	
+	printk(KERN_WARNING "%s: inode sid=0x%x\n", __FUNCTION__, sid);
+	return sid;
 }
 
 
