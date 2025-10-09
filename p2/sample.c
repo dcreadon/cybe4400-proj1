@@ -551,7 +551,7 @@ int sample_file_permission (struct file *file, int mask)
 		return 0;
 	}
 
-	/* YOUR CODE: Collect arguments for call to inode_has_perm */\
+	/* YOUR CODE: Collect arguments for call to inode_has_perm */
 	
 	// dentry represents a specific name in a directory, maps a filename to its inode
 	//f_path is a structure that holds the path information of the file
