@@ -21,7 +21,7 @@ RANLIB=ranlib
 #
 # Setup builds
 
-TARGETS=cwl_test user_test write_test append_test
+TARGETS=cwl_test user_test untrusted_test
 LIBS=
 
 #
