@@ -151,28 +151,25 @@ static int has_perm(u32 ssid_full, u32 osid, u32 ops)
 	// if ssid is SAMPLE_TRUSTED and CW-Lite is off, allow access only to SAMPLE_TRUSTED objects
 	// if ssid is SAMPLE_UNTRUSTED, allow access only to SAMPLE_UNTRUSTED objects
 
-	/* If subject has no security label, allow access */
+	// If subject has no security label, allow access 
 	if (ssid == SAMPLE_IGNORE) {
 		return 0; // ignore - no restrictions
 	}
 	
-	/* If object has no security label, allow access */
+	// if object has no security label, allow access
 	if (osid == SAMPLE_IGNORE) {
 		return 0; // no object restrictions
 	}
 
     if (ssid && osid) {
-		/* CW-Lite Rules Implementation */
 		if (ssid == SAMPLE_TRUSTED) {
-			/* Trusted processes can access trusted objects */
 			if (osid == SAMPLE_TRUSTED) {
 				return 0; // allow all operations
 			}
-			/* Trusted processes accessing untrusted objects */
 			if (osid == SAMPLE_UNTRUSTED) {
-				/* With CW-Lite on, allow all operations (write, read, exec) */
-				if (cwl & 0x10000000) {
-					return 0; // allow all operations with CW-Lite
+				// With CW-Lite on, allow all operations (write, read, exec)
+				if (cwl & 0x10000000) {  // && (ops & MAY_WRITE_EXEC || ops & MAY_READ || ops & MAY_WRITE)
+					return 0; // allow all operations with CW-Lite enabled for trusted processes to untrusted files
 				} else {
 					return -3; // deny all access without CW-Lite
 				}
@@ -180,11 +177,11 @@ static int has_perm(u32 ssid_full, u32 osid, u32 ops)
 		}
 		
 		if (ssid == SAMPLE_UNTRUSTED) {
-			/* Untrusted processes can access untrusted objects */
+			// Untrusted processes can access untrusted objects
 			if (osid == SAMPLE_UNTRUSTED) {
 				return 0; // allow all operations on same security level
 			}
-			/* Untrusted processes cannot access trusted objects */
+			// Untrusted processes cannot access trusted objects
 			if (osid == SAMPLE_TRUSTED) {
 				return -2; // deny all operations to prevent information leakage
 			}
@@ -825,22 +822,27 @@ static ssize_t cwlite_write(struct file *filp, const char __user *buffer,
                                  size_t count, loff_t *ppos)
 {
         int new_value;
-        char tbuf[1];                     // Single character buffer to match read function
+        char tbuf[2];                     // Two character buffer to match read function
 
 	/* YOUR CODE: for collecting value to write from user space */
 	
-	// Validate input size - only accept single character
-	if (count != 1) {
-		return -EINVAL;               // Must be exactly 1 character
+	// Validate input size - accept 1 or 2 bytes (for "1" or "1\n")
+	if (count < 1 || count > 2) {
+		return -EINVAL;               // Must be 1 or 2 characters
 	}
 	
-	// Safely copy single character from user space to kernel space
-	if (copy_from_user(tbuf, buffer, 1)) {
+	// Safely copy from user space to kernel space
+	if (copy_from_user(tbuf, buffer, count)) {
 		return -EFAULT;               // Copy failed (bad user address)
 	}
 	
-	// Convert character to integer (no null termination needed for single char)
+	// Convert first character to integer (ignore newlines)
 	new_value = tbuf[0] - '0';        // Convert '0' or '1' to integer 0 or 1
+	
+	// Validate the input value
+	if (new_value != 0 && new_value != 1) {
+		return -EINVAL;               // Only accept '0' or '1'
+	}
 	
 	*ppos += count;                   // Update file position
 	
