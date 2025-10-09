@@ -429,7 +429,8 @@ static int sample_inode_init_security(struct inode *inode, struct inode *dir,
 {
 	u32 ssid = get_task_sid(current);
 	u32 actual_ssid = 0xfffffff & ssid;
-	char *namep, *valuep;
+	char *namep = NULL;
+	char *valuep = NULL;
 
 	if (!inode || !dir)
 		return -EOPNOTSUPP;
@@ -777,12 +778,12 @@ static struct security_operations sample_ops = {
 };
 
 static struct dentry *cwl_debugfs_root;
-static struct dentry *d_cwl;
+//static struct dentry *d_cwl;
 static struct dentry *d_cwlite;
-static u8 a = 0;
+//static u8 a = 0;
 
 
-static size_t cwlite_read(struct file *filp, char __user *buffer, 
+static ssize_t cwlite_read(struct file *filp, char __user *buffer, 
 				size_t count, loff_t *ppos)
 {
 	/* YOUR CODE: for reading the CW-Lite value from the kernel */
@@ -862,7 +863,7 @@ static ssize_t cwlite_write(struct file *filp, const char __user *buffer,
 		break;
         }
 
-out:
+//out:
         return count;
 }
 
@@ -901,7 +902,7 @@ static __init int sample_init(void)
 
 	/*-------------------------------Added Code Above-------------------------------*/
 
-        printk(KERN_INFO "Sample:  Debugfs created: cwl: 0x%x, cwlite: 0x%x.\n",
+        printk(KERN_INFO "Sample:  Debugfs created: cwl: 0x%p, cwlite: 0x%p.\n",
 		cwl_debugfs_root, d_cwlite);
 
         return 0;
