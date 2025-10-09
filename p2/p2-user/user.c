@@ -22,7 +22,7 @@ int main( int argc, char *argv[] )
 	assert( argc == 3 );
 
 	cwl_fd = cwlite_open();
-	assert( fd > 0 );
+	assert( cwl_fd > 0 );
 
 	fd = open(argv[1], O_RDONLY);
 

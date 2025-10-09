@@ -21,7 +21,7 @@ RANLIB=ranlib
 #
 # Setup builds
 
-TARGETS=cwl_test user_test
+TARGETS=cwl_test user_test write_test append_test
 LIBS=
 
 #
@@ -34,6 +34,12 @@ cwl_test : test.o cwlite.o
 
 user_test : user.o cwlite.o
 	$(LINK) $(LDFLAGS) user.o cwlite.o $(LIBS) -o $@
+
+write_test : write_test.o cwlite.o
+	$(LINK) $(LDFLAGS) write_test.o cwlite.o $(LIBS) -o $@
+
+append_test : append_test.o cwlite.o
+	$(LINK) $(LDFLAGS) append_test.o cwlite.o $(LIBS) -o $@
 
 clean:
 	rm -f *.o *~ $(TARGETS)

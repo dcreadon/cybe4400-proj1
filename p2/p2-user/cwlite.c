@@ -7,7 +7,7 @@
 #include <fcntl.h>
 #include "cwlite.h"
 
-#define  SAMPLE_MNT  "/sys/kernel/debug/cwl/"
+#define  SAMPLE_MNT  "/sys/kernel/debug/cwl"
 #define  PATH_MAX    50
 #define  VALSIZE     12
 
