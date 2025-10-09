@@ -31,7 +31,8 @@ int main( int argc, char *argv[] )
 	}
 	else {
 		ret = getxattr( argv[1], "security.sample", attrbuf, LIMIT );
-		if ( ret == 0 ) {
+		if ( ret > 0 ) {
+			attrbuf[ret] = '\0';  // null terminate the string
 			printf( "user: %s attribute %s\n", argv[1], attrbuf );
 		}
 		else {
@@ -52,7 +53,8 @@ int main( int argc, char *argv[] )
 	}
 	else {
 		ret = getxattr( argv[2], "security.sample", attrbuf, LIMIT );
-		if ( ret == 0 ) {
+		if ( ret > 0 ) {
+			attrbuf[ret] = '\0';  // null terminate the string
 			printf( "user: %s attribute %s\n", argv[2], attrbuf );
 		}
 		else {
@@ -69,6 +71,20 @@ int main( int argc, char *argv[] )
 	printf( "%s\n", buf2 );
 
 	close( fd );
+	
+	/* Test the restriction: TRUSTED process + CW-Lite OFF + UNTRUSTED file should be DENIED */
+	printf( "Testing restriction: TRUSTED process accessing UNTRUSTED file with CW-Lite OFF\n" );
+	cwlite_off( cwl_fd );
+	fd = open(argv[2], O_RDONLY);  // This should FAIL for TRUSTED process
+	
+	if ( fd < 0 ) {
+		printf( "CORRECT: Access denied to untrusted file when CW-Lite is OFF\n" );
+	}
+	else {
+		printf( "ERROR: Access allowed to untrusted file when CW-Lite is OFF (should be denied)\n" );
+		close( fd );
+	}
+	
 	cwlite_close( cwl_fd );
 
 	return 0;
